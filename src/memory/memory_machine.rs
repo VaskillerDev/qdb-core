@@ -2,17 +2,18 @@ use qdb_ast::ast::types::DataType;
 use std::borrow::{BorrowMut, Cow};
 use std::collections::{BTreeMap, HashSet};
 use std::ops::RangeInclusive;
+use rbtree::RBTree;
 
 #[derive(Debug)]
 pub struct MemoryMachine {
-    mem: BTreeMap<DataType, Vec<RangeInclusive<i64>>>,
+    mem: RBTree<DataType, Vec<RangeInclusive<i64>>>,
     logic_time: i64,
 }
 
 impl MemoryMachine {
     pub fn init() -> Self {
         MemoryMachine {
-            mem: BTreeMap::new(),
+            mem: RBTree::new(),
             logic_time: 0,
         }
     }

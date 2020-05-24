@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 qdb-ast = {git="https://github.com/VaskillerDev/qdb-ast.git"}
+rbtree = "0.1.5"
