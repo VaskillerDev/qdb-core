@@ -6,5 +6,4 @@ use std::borrow::Cow;
 
 pub mod memory;
 
-fn main() {
-}
+fn main() {}

@@ -1,22 +1,29 @@
+use crate::memory::compared::Compared;
 use qdb_ast::ast::types::DataType;
+use rbtree::{Iter, RBTree};
 use std::borrow::{BorrowMut, Cow};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use std::ops::RangeInclusive;
-use rbtree::RBTree;
+
+type Indexes = Vec<RangeInclusive<i64>>;
 
 #[derive(Debug)]
 pub struct MemoryMachine {
-    mem: RBTree<DataType, Vec<RangeInclusive<i64>>>,
+    mem: RBTree<DataType, Indexes>,
     logic_time: i64,
 }
 
 impl MemoryMachine {
+    // To initialize empty MemoryMachine with clear tree map and logic time equal 0 (original number).
     pub fn init() -> Self {
         MemoryMachine {
             mem: RBTree::new(),
             logic_time: 0,
         }
     }
+
+    // To insert data_type in tree map. Where key - data_type value, value - vec indexes.
     pub fn insert(&mut self, data_type: DataType) {
         let key = self.mem.get(&data_type);
 
@@ -39,14 +46,14 @@ impl MemoryMachine {
         }
         self.logic_time += 1;
     }
-    pub fn get(&self, data_type: &DataType) -> Option<Vec<RangeInclusive<i64>>> {
+
+    // To get indexes by data_type value key from tree map.
+    pub fn get(&self, data_type: &DataType) -> Option<Indexes> {
         Some(self.mem.get(&data_type).unwrap().clone())
     }
 
-    pub fn get_values_by_range_inclusive(
-        &self,
-        range_inclusive: &Vec<RangeInclusive<i64>>,
-    ) -> Vec<DataType> {
+    // To get data_type by indexes from tree map.
+    pub fn get_values_by_range_inclusive(&self, range_inclusive: &Indexes) -> Vec<DataType> {
         let mut vec: Vec<DataType> = Vec::new();
         for (value, key) in self.mem.iter() {
             if Vec::intersect(range_inclusive, key) {
@@ -55,16 +62,33 @@ impl MemoryMachine {
         }
         return vec;
     }
+
+    // To get vector of indexes filter by predicate from tree map
+    // where f(a,b) := a x b, where x ∃ {==,!=,>=,>,<=,<}
+    // then ∀a ∈ A
+    pub fn get_by_compare_with<F: Fn(&DataType, &DataType) -> bool>(
+        &self,
+        other: &DataType,
+        predicate: F,
+    ) -> Vec<&Indexes> {
+        let mut vec: Vec<&Indexes> = vec![];
+        for i in self.mem.iter() {
+            if predicate(i.0, other) {
+                vec.push(i.1);
+            }
+        }
+        vec
+    }
 }
 
 trait Intersection {
     fn intersect(left: &Self, right: &Self) -> bool;
 }
 
-impl Intersection for Vec<RangeInclusive<i64>> {
+impl Intersection for Indexes {
     // intersection in each element in vec
     // if a ∈ A && a ∈ B => A ⋂ B
-    fn intersect(left: &Vec<RangeInclusive<i64>>, right: &Vec<RangeInclusive<i64>>) -> bool {
+    fn intersect(left: &Indexes, right: &Indexes) -> bool {
         let left_vec_len = left.len() - 1;
         let right_vec_len = right.len() - 1;
 
@@ -94,14 +118,26 @@ impl Intersection for RangeInclusive<i64> {
         if other.contains(_self.start()) || other.contains(_self.end()) {
             return true;
         }
-
         false
     }
 }
 
+impl Compared for DataType {
+    fn compare_with_override(&self, other: Self) -> Option<Ordering> {
+        unimplemented!()
+    }
+}
+impl Compared for &DataType {
+    fn compare_with_override(&self, other: Self) -> Option<Ordering> {
+        self.compare_with(&other)
+    }
+}
+
 mod test {
-    use crate::memory::memory_machine::{Intersection, MemoryMachine};
+    use crate::memory::compared::Compared;
+    use crate::memory::memory_machine::{Indexes, Intersection, MemoryMachine};
     use qdb_ast::ast::types::DataType;
+    use std::cmp::Ordering;
     use std::ops::RangeInclusive;
 
     #[test]
@@ -157,6 +193,22 @@ mod test {
     }
 
     #[test]
+    fn test_memory_machine_get_compare_with() {
+        let mut memory_machine = MemoryMachine::init();
+
+        memory_machine.insert(DataType::Null);
+        memory_machine.insert(DataType::Null);
+        memory_machine.insert(DataType::Real(35.0));
+        memory_machine.insert(DataType::Real(35.01));
+
+        let result = memory_machine.get_by_compare_with(&DataType::Real(35.0), |this, other|
+            DataType::comparing(this, other, <DataType as Compared>::eq)
+        );
+
+        //println!("{:?}",result)
+    }
+
+    #[test]
     fn test_range_intersection() {
         let a_range = RangeInclusive::new(1, 5);
         let b_range = RangeInclusive::new(3, 4);
@@ -181,36 +233,28 @@ mod test {
 
     #[test]
     fn test_vec_range_intersection() {
-        let a_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(0, 2), RangeInclusive::new(4, 6)];
-        let b_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(0, 1), RangeInclusive::new(2, 3)];
+        let a_range: Indexes = vec![RangeInclusive::new(0, 2), RangeInclusive::new(4, 6)];
+        let b_range: Indexes = vec![RangeInclusive::new(0, 1), RangeInclusive::new(2, 3)];
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(true, result);
 
-        let a_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(2, 4), RangeInclusive::new(5, 8)];
-        let b_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(3, 5), RangeInclusive::new(8, 10)];
+        let a_range: Indexes = vec![RangeInclusive::new(2, 4), RangeInclusive::new(5, 8)];
+        let b_range: Indexes = vec![RangeInclusive::new(3, 5), RangeInclusive::new(8, 10)];
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(true, result);
 
-        let a_range: Vec<RangeInclusive<i64>> = vec![RangeInclusive::new(0, 1)];
-        let b_range: Vec<RangeInclusive<i64>> = vec![RangeInclusive::new(0, 0)];
+        let a_range: Indexes = vec![RangeInclusive::new(0, 1)];
+        let b_range: Indexes = vec![RangeInclusive::new(0, 0)];
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(true, result);
 
-        let a_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(32, 55), RangeInclusive::new(58, 93)];
-        let b_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(0, 2), RangeInclusive::new(8, 10)];
+        let a_range: Indexes = vec![RangeInclusive::new(32, 55), RangeInclusive::new(58, 93)];
+        let b_range: Indexes = vec![RangeInclusive::new(0, 2), RangeInclusive::new(8, 10)];
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(false, result);
 
-        let a_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(32, 55), RangeInclusive::new(58, 93)];
-        let b_range: Vec<RangeInclusive<i64>> =
-            vec![RangeInclusive::new(93, 108), RangeInclusive::new(110, 120)];
+        let a_range: Indexes = vec![RangeInclusive::new(32, 55), RangeInclusive::new(58, 93)];
+        let b_range: Indexes = vec![RangeInclusive::new(93, 108), RangeInclusive::new(110, 120)];
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(false, result);
     }
