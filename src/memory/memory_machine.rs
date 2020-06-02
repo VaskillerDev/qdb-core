@@ -1,4 +1,5 @@
 use crate::memory::compared::Compared;
+use crate::memory::intersection::Intersection;
 use qdb_ast::ast::types::DataType;
 use rbtree::{Iter, RBTree};
 use std::borrow::{BorrowMut, Cow};
@@ -15,7 +16,8 @@ pub struct MemoryMachine {
 }
 
 impl MemoryMachine {
-    // To initialize empty MemoryMachine with clear tree map and logic time equal 0 (original number).
+    // To initialize empty MemoryMachine with clear tree map
+    // and logic time equal 0 (original number).
     pub fn init() -> Self {
         MemoryMachine {
             mem: RBTree::new(),
@@ -81,10 +83,6 @@ impl MemoryMachine {
     }
 }
 
-trait Intersection {
-    fn intersect(left: &Self, right: &Self) -> bool;
-}
-
 impl Intersection for Indexes {
     // intersection in each element in vec
     // if a ∈ A && a ∈ B => A ⋂ B
@@ -135,7 +133,8 @@ impl Compared for &DataType {
 
 mod test {
     use crate::memory::compared::Compared;
-    use crate::memory::memory_machine::{Indexes, Intersection, MemoryMachine};
+    use crate::memory::intersection::Intersection;
+    use crate::memory::memory_machine::{Indexes, MemoryMachine};
     use qdb_ast::ast::types::DataType;
     use std::cmp::Ordering;
     use std::ops::RangeInclusive;
@@ -201,9 +200,9 @@ mod test {
         memory_machine.insert(DataType::Real(35.0));
         memory_machine.insert(DataType::Real(35.01));
 
-        let result = memory_machine.get_by_compare_with(&DataType::Real(35.0), |this, other|
+        let result = memory_machine.get_by_compare_with(&DataType::Real(35.0), |this, other| {
             DataType::comparing(this, other, <DataType as Compared>::eq)
-        );
+        });
 
         //println!("{:?}",result)
     }
