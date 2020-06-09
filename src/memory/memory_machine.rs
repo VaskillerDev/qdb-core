@@ -125,6 +125,7 @@ impl Compared for DataType {
         unimplemented!()
     }
 }
+
 impl Compared for &DataType {
     fn compare_with_override(&self, other: Self) -> Option<Ordering> {
         self.compare_with(&other)
