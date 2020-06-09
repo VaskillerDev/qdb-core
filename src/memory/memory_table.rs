@@ -4,6 +4,7 @@ use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use crate::memory::print_of_state::PrintOfState;
 
 // variable storage
 #[derive(Debug)]
@@ -137,8 +138,9 @@ impl MemoryTable {
 }
 
 mod test {
-    use crate::memory::memory_table::{MemoryTable, PrintOfState};
+    use crate::memory::memory_table::{MemoryTable};
     use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
+    use crate::memory::print_of_state::PrintOfState;
 
     #[test]
     fn test_memory_table_insert() {
