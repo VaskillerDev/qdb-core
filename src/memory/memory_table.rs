@@ -5,21 +5,6 @@ use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, PartialOrd, PartialEq)]
-struct PrintOfState {
-    name: String,
-    values: Vec<DataType>,
-}
-
-impl PrintOfState {
-    fn new(name: &String, values: Vec<DataType>) -> Self {
-        PrintOfState {
-            name: name.to_string(),
-            values,
-        }
-    }
-}
-
 // variable storage
 #[derive(Debug)]
 struct MemoryTable {
@@ -68,7 +53,6 @@ impl MemoryTable {
                     DataType::comparing(this, other, predicate)
                 });
 
-                // todo: rename
                 let indexes = *indexes.get(0).unwrap(); // why .get(0) ?, what wrong ?
                 for (key, mem) in self.mem.iter() {
                     let data_types = mem.get_values_by_range_inclusive(indexes);
@@ -159,12 +143,13 @@ mod test {
     #[test]
     fn test_memory_table_insert() {
         let mut memory_table = MemoryTable::init();
-        memory_table.insert("my_var", DataType::Text("mytext".to_string()));
-        memory_table.insert("my_var", DataType::Null);
-        memory_table.insert("my_var", DataType::Null);
-        memory_table.insert("my_var", DataType::Real(56.01));
-        memory_table.insert("my_var", DataType::Int(32));
-        memory_table.insert("my_val", DataType::Null);
+        memory_table.insert("A", DataType::Text("mytext".to_string()));
+        memory_table.insert("A", DataType::Null);
+        memory_table.insert("B", DataType::Null);
+        memory_table.insert("A", DataType::Real(56.01));
+        memory_table.insert("A", DataType::Int(32));
+        memory_table.insert("B", DataType::Null);
+
         println!("{:#?}", memory_table);
     }
 
