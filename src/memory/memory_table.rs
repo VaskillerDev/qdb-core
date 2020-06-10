@@ -1,10 +1,10 @@
 use crate::memory::compared::Compared;
-use crate::memory::memory_machine::{MemoryMachine, Indexes};
+use crate::memory::memory_machine::{Indexes, MemoryMachine};
+use crate::memory::print_of_state::PrintOfState;
 use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use crate::memory::print_of_state::PrintOfState;
 
 // variable storage
 #[derive(Debug)]
@@ -52,7 +52,7 @@ impl MemoryTable {
                     DataType::comparing(this, other, predicate)
                 });
 
-                return Some(indexes)
+                return Some(indexes);
             }
         }
         None
@@ -108,20 +108,14 @@ impl MemoryTable {
                 return None;
             }
 
-            let result_from_l = self.resolve_symbol_operator_get_indexes(
-                maybe_l_value,
-                right,
-                operator,
-            );
-            let result_from_r = self.resolve_symbol_operator_get_indexes(
-                maybe_r_value,
-                left,
-                operator,
-            );
+            let result_from_l =
+                self.resolve_symbol_operator_get_indexes(maybe_l_value, right, operator);
+            let result_from_r =
+                self.resolve_symbol_operator_get_indexes(maybe_r_value, left, operator);
 
             if result_from_l.is_some() {
                 let indexes = *result_from_l.unwrap().get(0).unwrap(); // why .get(0) ?, what wrong ?
-                let mut vec : Vec<PrintOfState> = Vec::new();
+                let mut vec: Vec<PrintOfState> = Vec::new();
                 for (key, mem) in self.mem.iter() {
                     let data_types = mem.get_values_by_range_inclusive(indexes);
                     vec.push(PrintOfState::new(key, data_types));
@@ -130,13 +124,12 @@ impl MemoryTable {
             }
             if result_from_r.is_some() {
                 let indexes = *result_from_r.unwrap().get(0).unwrap(); // why .get(0) ?, what wrong ?
-                let mut vec : Vec<PrintOfState> = Vec::new();
+                let mut vec: Vec<PrintOfState> = Vec::new();
                 for (key, mem) in self.mem.iter() {
                     let data_types = mem.get_values_by_range_inclusive(indexes);
                     vec.push(PrintOfState::new(key, data_types));
                 }
                 return Some(vec);
-
             }
             return None;
         }
@@ -154,20 +147,14 @@ impl MemoryTable {
                 return None;
             }
 
-            let result_from_l = self.resolve_symbol_operator_get_indexes(
-                maybe_l_value,
-                right,
-                operator,
-            );
-            let result_from_r = self.resolve_symbol_operator_get_indexes(
-                maybe_r_value,
-                left,
-                operator,
-            );
+            let result_from_l =
+                self.resolve_symbol_operator_get_indexes(maybe_l_value, right, operator);
+            let result_from_r =
+                self.resolve_symbol_operator_get_indexes(maybe_r_value, left, operator);
 
             if result_from_l.is_some() {
                 let indexes = *result_from_l.unwrap().get(0).unwrap();
-                let mut vec : Vec<PrintOfState> = Vec::new();
+                let mut vec: Vec<PrintOfState> = Vec::new();
                 for (key, mem) in self.mem.iter() {
                     let mut data_types = mem.get_values_by_range_inclusive(indexes);
                     if data_types.is_empty() {
@@ -181,7 +168,7 @@ impl MemoryTable {
 
             if result_from_r.is_some() {
                 let indexes = *result_from_r.unwrap().get(0).unwrap();
-                let mut vec : Vec<PrintOfState> = Vec::new();
+                let mut vec: Vec<PrintOfState> = Vec::new();
                 for (key, mem) in self.mem.iter() {
                     let mut data_types = mem.get_values_by_range_inclusive(indexes);
                     if data_types.is_empty() {
@@ -198,9 +185,9 @@ impl MemoryTable {
 }
 
 mod test {
-    use crate::memory::memory_table::{MemoryTable};
-    use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
+    use crate::memory::memory_table::MemoryTable;
     use crate::memory::print_of_state::PrintOfState;
+    use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
 
     #[test]
     fn test_memory_table_insert() {
@@ -287,7 +274,6 @@ mod test {
 
         let vec_print_of_state = mem_table.find_by_predicate_intense(&binary_expr);
 
-        println!("{:#?}",vec_print_of_state);
+        println!("{:#?}", vec_print_of_state);
     }
-
 }

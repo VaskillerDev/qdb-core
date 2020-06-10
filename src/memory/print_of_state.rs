@@ -7,7 +7,7 @@ pub struct PrintOfState {
 }
 
 impl PrintOfState {
-   pub fn new(name: &String, values: Vec<DataType>) -> Self {
+    pub fn new(name: &String, values: Vec<DataType>) -> Self {
         PrintOfState {
             name: name.to_string(),
             values,

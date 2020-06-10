@@ -67,8 +67,8 @@ impl MemoryMachine {
 
     // To get last value from memory machine
     pub fn get_last_value(&self) -> Option<&DataType> {
-        let last_index = self.logic_time-1;
-        for (symbol,indexes) in self.mem.iter() {
+        let last_index = self.logic_time - 1;
+        for (symbol, indexes) in self.mem.iter() {
             for range in indexes {
                 if range.contains(&last_index) {
                     return Some(symbol);
@@ -215,7 +215,10 @@ mod test {
 
         memory_machine.insert(DataType::Real(32.0));
 
-        debug_assert_eq!(&DataType::Real(32.0),memory_machine.get_last_value().unwrap());
+        debug_assert_eq!(
+            &DataType::Real(32.0),
+            memory_machine.get_last_value().unwrap()
+        );
     }
 
     #[test]
@@ -284,5 +287,4 @@ mod test {
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(false, result);
     }
-
 }
