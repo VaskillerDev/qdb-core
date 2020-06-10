@@ -1,5 +1,5 @@
 use crate::memory::compared::Compared;
-use crate::memory::memory_machine::MemoryMachine;
+use crate::memory::memory_machine::{MemoryMachine, Indexes};
 use qdb_ast::ast::types::{BinaryExpr, DataType, DataVar};
 use std::borrow::BorrowMut;
 use std::cmp::Ordering;
@@ -33,14 +33,12 @@ impl MemoryTable {
         };
     }
 
-    fn resolve_symbol_operator_get_values_by_range_inclusive(
+    fn resolve_symbol_operator_get_indexes(
         &self,
         maybe_left_symbol: Option<&String>,
         right: &DataType,
         operator: &str,
-    ) -> Vec<PrintOfState> {
-        let mut vec: Vec<PrintOfState> = Vec::new();
-
+    ) -> Option<Vec<&Indexes>> {
         if maybe_left_symbol.is_some() {
             let value = maybe_left_symbol.unwrap();
 
@@ -54,14 +52,10 @@ impl MemoryTable {
                     DataType::comparing(this, other, predicate)
                 });
 
-                let indexes = *indexes.get(0).unwrap(); // why .get(0) ?, what wrong ?
-                for (key, mem) in self.mem.iter() {
-                    let data_types = mem.get_values_by_range_inclusive(indexes);
-                    vec.push(PrintOfState::new(key, data_types));
-                }
+                return Some(indexes)
             }
         }
-        return vec;
+        None
     }
 
     // public function
@@ -104,6 +98,7 @@ impl MemoryTable {
     }
     pub fn find_by_predicate(&self, binary_expr: &BinaryExpr) -> Option<Vec<PrintOfState>> {
         let (left, right, operator) = binary_expr.get();
+        // todo: refactor it
 
         {
             let maybe_l_value = Self::get_symbol(left);
@@ -113,26 +108,91 @@ impl MemoryTable {
                 return None;
             }
 
-            let result_from_l = self.resolve_symbol_operator_get_values_by_range_inclusive(
+            let result_from_l = self.resolve_symbol_operator_get_indexes(
                 maybe_l_value,
                 right,
                 operator,
             );
-            let result_from_r = self.resolve_symbol_operator_get_values_by_range_inclusive(
+            let result_from_r = self.resolve_symbol_operator_get_indexes(
                 maybe_r_value,
                 left,
                 operator,
             );
 
-            if !result_from_l.is_empty() {
-                return Some(result_from_l);
+            if result_from_l.is_some() {
+                let indexes = *result_from_l.unwrap().get(0).unwrap(); // why .get(0) ?, what wrong ?
+                let mut vec : Vec<PrintOfState> = Vec::new();
+                for (key, mem) in self.mem.iter() {
+                    let data_types = mem.get_values_by_range_inclusive(indexes);
+                    vec.push(PrintOfState::new(key, data_types));
+                }
+                return Some(vec);
             }
-            if !result_from_r.is_empty() {
-                return Some(result_from_r);
+            if result_from_r.is_some() {
+                let indexes = *result_from_r.unwrap().get(0).unwrap(); // why .get(0) ?, what wrong ?
+                let mut vec : Vec<PrintOfState> = Vec::new();
+                for (key, mem) in self.mem.iter() {
+                    let data_types = mem.get_values_by_range_inclusive(indexes);
+                    vec.push(PrintOfState::new(key, data_types));
+                }
+                return Some(vec);
+
             }
             return None;
         }
 
+        None
+    }
+
+    pub fn find_by_predicate_intense(&self, binary_expr: &BinaryExpr) -> Option<Vec<PrintOfState>> {
+        let (left, right, operator) = binary_expr.get();
+        {
+            let maybe_l_value = Self::get_symbol(left);
+            let maybe_r_value = Self::get_symbol(right);
+
+            if maybe_l_value.is_some() && maybe_r_value.is_some() {
+                return None;
+            }
+
+            let result_from_l = self.resolve_symbol_operator_get_indexes(
+                maybe_l_value,
+                right,
+                operator,
+            );
+            let result_from_r = self.resolve_symbol_operator_get_indexes(
+                maybe_r_value,
+                left,
+                operator,
+            );
+
+            if result_from_l.is_some() {
+                let indexes = *result_from_l.unwrap().get(0).unwrap();
+                let mut vec : Vec<PrintOfState> = Vec::new();
+                for (key, mem) in self.mem.iter() {
+                    let mut data_types = mem.get_values_by_range_inclusive(indexes);
+                    if data_types.is_empty() {
+                        data_types = vec![mem.get_last_value().unwrap().clone()];
+                    }
+                    vec.push(PrintOfState::new(key, data_types));
+                }
+
+                return Some(vec);
+            }
+
+            if result_from_r.is_some() {
+                let indexes = *result_from_r.unwrap().get(0).unwrap();
+                let mut vec : Vec<PrintOfState> = Vec::new();
+                for (key, mem) in self.mem.iter() {
+                    let mut data_types = mem.get_values_by_range_inclusive(indexes);
+                    if data_types.is_empty() {
+                        data_types = vec![mem.get_last_value().unwrap().clone()];
+                    }
+                    vec.push(PrintOfState::new(key, data_types));
+                }
+
+                return Some(vec);
+            }
+        }
         None
     }
 }
@@ -205,4 +265,29 @@ mod test {
             ))
         );
     }
+
+    #[test]
+    fn test_memory_find_by_predicate_intense() {
+        let mut mem_table = MemoryTable::init();
+        mem_table.insert("my_val", DataType::Int(101));
+        mem_table.insert("my_val", DataType::Int(101));
+        mem_table.insert("my_val", DataType::Int(64));
+        mem_table.insert("my_val2", DataType::Int(32));
+        mem_table.insert("my_val", DataType::Int(101));
+        mem_table.insert("my_val3", DataType::Int(32));
+        mem_table.insert("my_val3", DataType::Int(64));
+        mem_table.insert("my_val3", DataType::Int(89));
+        mem_table.insert("my_val3", DataType::Int(90));
+
+        let binary_expr = BinaryExpr::new(
+            DataType::Int(101),
+            DataType::Symbol("my_val".to_string()),
+            "==".to_string(),
+        );
+
+        let vec_print_of_state = mem_table.find_by_predicate_intense(&binary_expr);
+
+        println!("{:#?}",vec_print_of_state);
+    }
+
 }
