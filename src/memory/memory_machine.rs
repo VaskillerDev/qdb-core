@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use std::ops::RangeInclusive;
 
-type Indexes = Vec<RangeInclusive<i64>>;
+pub type Indexes = Vec<RangeInclusive<i64>>;
 
 #[derive(Debug)]
 pub struct MemoryMachine {
@@ -63,6 +63,19 @@ impl MemoryMachine {
             }
         }
         return vec;
+    }
+
+    // To get last value from memory machine
+    pub fn get_last_value(&self) -> Option<&DataType> {
+        let last_index = self.logic_time-1;
+        for (symbol,indexes) in self.mem.iter() {
+            for range in indexes {
+                if range.contains(&last_index) {
+                    return Some(symbol);
+                }
+            }
+        }
+        None
     }
 
     // To get vector of indexes filter by predicate from tree map
@@ -193,6 +206,19 @@ mod test {
     }
 
     #[test]
+    fn get_last_value_test() {
+        let mut memory_machine = MemoryMachine::init();
+
+        memory_machine.insert(DataType::Null);
+        memory_machine.insert(DataType::Null);
+        memory_machine.insert(DataType::Null);
+
+        memory_machine.insert(DataType::Real(32.0));
+
+        debug_assert_eq!(&DataType::Real(32.0),memory_machine.get_last_value().unwrap());
+    }
+
+    #[test]
     fn test_memory_machine_get_compare_with() {
         let mut memory_machine = MemoryMachine::init();
 
@@ -258,4 +284,5 @@ mod test {
         let result = Vec::intersect(&a_range, &b_range);
         debug_assert_eq!(false, result);
     }
+
 }
