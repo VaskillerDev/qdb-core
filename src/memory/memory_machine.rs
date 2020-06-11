@@ -206,7 +206,7 @@ mod test {
     }
 
     #[test]
-    fn get_last_value_test() {
+    fn test_get_last_value() {
         let mut memory_machine = MemoryMachine::init();
 
         memory_machine.insert(DataType::Null);
