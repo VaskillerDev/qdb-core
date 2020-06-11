@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 // variable storage
 #[derive(Debug)]
-struct MemoryTable {
+pub struct MemoryTable {
     mem: HashMap<String, MemoryMachine>,
 }
 
@@ -182,6 +182,10 @@ impl MemoryTable {
         }
         None
     }
+
+    pub fn is_var_exist(&self, name: &String) -> bool {
+        self.mem.contains_key(name)
+    }
 }
 
 mod test {
@@ -229,6 +233,8 @@ mod test {
         );
 
         let vec_print_of_state = mem_table.find_by_predicate(&binary_expr).unwrap();
+
+        println!("{:#?}", vec_print_of_state);
 
         debug_assert_eq!(
             true,
